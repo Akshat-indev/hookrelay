@@ -432,17 +432,102 @@ def verify_webhook(raw_body_bytes, signature_header, signing_secret):
 
 ---
 
-## Production Deployment Strategy
+## Production Deployment Guide
 
-For single-node or containerized deployments:
-1. **Persistent Volume**: Ensure the SQLite database file (`dev.db`) is mounted on a persistent block storage volume.
-2. **Process Management**: Run the API server (`src/server.js`) and worker process (`src/worker.js`) using a process supervisor such as `pm2`, `supervisord`, or Docker Compose.
-3. **Multi-Node / High Throughput Recommendation**: For multi-node cloud environments (e.g. AWS ECS, Kubernetes), migrate the Prisma datasource from `sqlite` to `postgresql` so multiple distributed API and worker nodes can share the queue safely.
+HookRelay is architected for clean cloud deployment with decoupled processes sharing a persistent database:
+
+- **Frontend**: Deployed to [Vercel](https://vercel.com) (SPA static hosting)
+- **API Server**: Deployed to [Render](https://render.com) (Web Service)
+- **Delivery Worker**: Deployed to [Render](https://render.com) (Background Worker)
+- **Database**: Managed PostgreSQL on [Render](https://render.com), [Neon](https://neon.tech), or [Supabase](https://supabase.com)
+
+```
+┌─────────────────────────┐
+│     Vercel (Client)     │
+│   React / Vite Dashboard│
+└────────────┬────────────┘
+             │ HTTPS (VITE_API_BASE_URL)
+             ▼
+┌─────────────────────────┐        ┌─────────────────────────┐
+│    Render API (Web)     │        │  Render Worker Process  │
+│  Express.js API Server  │        │   Node.js Polling Loop  │
+└────────────┬────────────┘        └────────────┬────────────┘
+             │                                  │
+             │   PostgreSQL (DATABASE_URL)      │
+             └────────────────┬─────────────────┘
+                              ▼
+                 ┌─────────────────────────┐
+                 │   Managed PostgreSQL    │
+                 │   (Render/Neon/Supabase)│
+                 └─────────────────────────┘
+```
+
+### Environment Variables Reference
+
+| Variable | Target Service | Default / Example | Purpose |
+| :--- | :--- | :--- | :--- |
+| `VITE_API_BASE_URL` | Frontend (Vercel) | `https://hookrelay-api.onrender.com` | Base URL of the backend API |
+| `PORT` | API Server (Render) | `10000` | Port for Express HTTP listener |
+| `NODE_ENV` | API & Worker | `production` | Node environment flag |
+| `DATABASE_URL` | API & Worker | `postgresql://user:pass@host/db?sslmode=require` | Managed PostgreSQL connection string |
+| `CORS_ORIGIN` | API Server | `https://your-hookrelay.vercel.app` (or `*`) | Permitted CORS frontend origins |
+| `ALLOW_LOCAL_DESTINATIONS` | API & Worker | `false` | Must be `false` in production for SSRF safety |
+| `WORKER_POLL_INTERVAL_MS` | Worker | `1000` | Polling interval in milliseconds |
+| `WORKER_BATCH_SIZE` | Worker | `10` | Max jobs claimed per batch |
+| `DELIVERY_TIMEOUT_MS` | Worker | `10000` | Outbound HTTP request timeout (10s) |
+
+---
+
+### Step-by-Step Deployment Instructions
+
+#### 1. Deploy the Database (PostgreSQL)
+1. In your cloud provider (Render, Neon, or Supabase), create a new PostgreSQL database.
+2. Copy the external connection string (`DATABASE_URL`).
+
+#### 2. Deploy the API & Delivery Worker to Render
+
+##### Option A: Using the Render Blueprint (`render.yaml`)
+1. Connect your HookRelay Git repository to Render.
+2. Select **New** -> **Blueprint**.
+3. Render will read `render.yaml` and automatically provision the `hookrelay-api` web service, the `hookrelay-worker` background process, and a managed PostgreSQL database.
+
+##### Option B: Manual Setup on Render
+1. **API Web Service**:
+   - **Name**: `hookrelay-api`
+   - **Root Directory**: `server`
+   - **Build Command**: `npm install && npx prisma db push --schema=prisma/schema.postgresql.prisma`
+   - **Start Command**: `npm run start`
+   - **Health Check Path**: `/api/health`
+   - **Environment Variables**:
+     - `NODE_ENV`: `production`
+     - `DATABASE_URL`: `your-postgres-connection-string`
+     - `CORS_ORIGIN`: `*` (or your Vercel URL)
+     - `ALLOW_LOCAL_DESTINATIONS`: `false`
+
+2. **Delivery Worker Service**:
+   - **Name**: `hookrelay-worker`
+   - **Service Type**: **Background Worker**
+   - **Root Directory**: `server`
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm run worker`
+   - **Environment Variables**:
+     - `NODE_ENV`: `production`
+     - `DATABASE_URL`: `your-postgres-connection-string`
+     - `ALLOW_LOCAL_DESTINATIONS`: `false`
+
+#### 3. Deploy the Frontend to Vercel
+1. Import your Git repository in Vercel.
+2. Set **Root Directory** to `client`.
+3. Set **Framework Preset** to **Vite**.
+4. In **Environment Variables**, add:
+   - `VITE_API_BASE_URL`: `https://hookrelay-api.onrender.com` (your Render API URL)
+5. Click **Deploy**. Vercel will build the frontend using `client/vercel.json` for seamless SPA client-side routing.
 
 ---
 
 ## Known Limitations & Roadmap
 
-- **Database Engine**: V1 uses SQLite in WAL mode with busy timeout for lightweight zero-dependency deployment. High-throughput distributed scaling will benefit from PostgreSQL.
+- **Database Engine**: V1 supports SQLite locally with WAL mode and PostgreSQL in cloud deployments.
 - **Authentication**: V1 focuses on the developer environment without multi-tenant authentication. V2 roadmap includes API keys and team organizations.
 - **Payload Size**: Default maximum payload size is capped at 1 MB.
+

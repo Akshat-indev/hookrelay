@@ -1,9 +1,12 @@
 import React from 'react';
 import { CodeBlock } from '../components/CodeBlock';
 import { Shield, Send, Globe, RefreshCw, Cpu } from 'lucide-react';
+import { getApiRootUrl } from '../api/client';
 
 export function DocsPage() {
-  const curlCreateEndpoint = `curl -X POST http://localhost:4000/api/endpoints \\
+  const apiRoot = getApiRootUrl();
+
+  const curlCreateEndpoint = `curl -X POST ${apiRoot}/api/endpoints \\
   -H "Content-Type: application/json" \\
   -d '{
     "name": "Production Payment Receiver",
@@ -11,12 +14,12 @@ export function DocsPage() {
     "maxRetries": 5
   }'`;
 
-  const pwshCreateEndpoint = `Invoke-RestMethod -Uri "http://localhost:4000/api/endpoints" \`
+  const pwshCreateEndpoint = `Invoke-RestMethod -Uri "${apiRoot}/api/endpoints" \`
   -Method Post \`
   -ContentType "application/json" \`
   -Body '{"name": "Production Payment Receiver", "destinationUrl": "https://api.mycompany.com/webhooks/payments", "maxRetries": 5}'`;
 
-  const curlSendEvent = `curl -X POST http://localhost:4000/api/endpoints/ep_YOUR_ENDPOINT_ID/events \\
+  const curlSendEvent = `curl -X POST ${apiRoot}/api/endpoints/ep_YOUR_ENDPOINT_ID/events \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: pay_order_12345" \\
   -d '{
@@ -29,7 +32,7 @@ export function DocsPage() {
     }
   }'`;
 
-  const pwshSendEvent = `Invoke-RestMethod -Uri "http://localhost:4000/api/endpoints/ep_YOUR_ENDPOINT_ID/events" \`
+  const pwshSendEvent = `Invoke-RestMethod -Uri "${apiRoot}/api/endpoints/ep_YOUR_ENDPOINT_ID/events" \`
   -Method Post \`
   -Headers @{ "Idempotency-Key" = "pay_order_12345" } \`
   -ContentType "application/json" \`

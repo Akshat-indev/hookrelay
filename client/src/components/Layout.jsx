@@ -92,6 +92,7 @@ export function Layout() {
   const getPageTitle = () => {
     if (location.pathname === '/') return 'System Overview';
     if (location.pathname === '/endpoints') return 'Webhook Endpoints';
+    if (location.pathname.startsWith('/endpoints/')) return 'Endpoint Configuration';
     if (location.pathname.startsWith('/events/')) return 'Event Inspection';
     if (location.pathname === '/events') return 'Delivery Events';
     if (location.pathname === '/docs') return 'Developer API Reference';

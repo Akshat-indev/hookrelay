@@ -19,7 +19,10 @@ export function createApp() {
   const app = express();
 
   // Basic security and parsing middleware
-  app.use(cors());
+  const corsOptions = config.security.corsOrigin === '*'
+    ? { origin: true }
+    : { origin: config.security.corsOrigin.split(',').map((o) => o.trim()), credentials: true };
+  app.use(cors(corsOptions));
   app.use(express.json({ limit: `${config.security.maxPayloadBytes}b` }));
 
   // Request logger for API calls

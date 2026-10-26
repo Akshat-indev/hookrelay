@@ -1,73 +1,104 @@
-const API_BASE = '/api';
+// Centralized API Client for HookRelay
+const rawBase = import.meta.env.VITE_API_BASE_URL || '';
+export const API_BASE = rawBase ? `${rawBase.replace(/\/+$/, '')}/api` : '/api';
 
-async function handleResponse(res) {
-  if (!res.ok) {
-    let errorMessage = `Request failed with status ${res.status}`;
-    try {
-      const errorJson = await res.json();
-      if (errorJson.error) {
-        errorMessage = errorJson.error;
+/**
+ * Returns the public root URL of the API for integration examples.
+ */
+export function getApiRootUrl() {
+  if (rawBase) {
+    return rawBase.replace(/\/+$/, '');
+  }
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return 'http://localhost:4000';
+}
+
+/**
+ * Generic fetch wrapper with timeout and standardized error extraction.
+ */
+async function request(url, options = {}, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      let errorMessage = `HTTP ${res.status}: ${res.statusText || 'Request failed'}`;
+      try {
+        const errorJson = await res.json();
+        if (errorJson.error) {
+          errorMessage = errorJson.error;
+        }
+        if (errorJson.details && Array.isArray(errorJson.details)) {
+          errorMessage += `: ${errorJson.details.map((d) => d.message || d.path).join(', ')}`;
+        }
+      } catch {
+        // Non-JSON response
       }
-      if (errorJson.details && Array.isArray(errorJson.details)) {
-        errorMessage += `: ${errorJson.details.map((d) => d.message || d.path).join(', ')}`;
-      }
-    } catch {
-      // Non-JSON response
+      const err = new Error(errorMessage);
+      err.status = res.status;
+      throw err;
     }
-    const err = new Error(errorMessage);
-    err.status = res.status;
+
+    return await res.json();
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      const timeoutErr = new Error(`Request timed out after ${timeoutMs}ms`);
+      timeoutErr.status = 408;
+      throw timeoutErr;
+    }
     throw err;
   }
-  return res.json();
 }
 
 export const api = {
   // Health
   async getHealth() {
-    const res = await fetch(`${API_BASE}/health`);
-    return handleResponse(res);
+    return request(`${API_BASE}/health`, { method: 'GET' }, 8000);
   },
 
   // Overview Metrics
   async getOverview() {
-    const res = await fetch(`${API_BASE}/overview`);
-    return handleResponse(res);
+    return request(`${API_BASE}/overview`, { method: 'GET' });
   },
 
   // Endpoints
   async getEndpoints() {
-    const res = await fetch(`${API_BASE}/endpoints`);
-    return handleResponse(res);
+    return request(`${API_BASE}/endpoints`, { method: 'GET' });
   },
 
   async getEndpoint(id) {
-    const res = await fetch(`${API_BASE}/endpoints/${id}`);
-    return handleResponse(res);
+    return request(`${API_BASE}/endpoints/${id}`, { method: 'GET' });
   },
 
   async createEndpoint(data) {
-    const res = await fetch(`${API_BASE}/endpoints`, {
+    return request(`${API_BASE}/endpoints`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
-    return handleResponse(res);
   },
 
   async updateEndpoint(id, data) {
-    const res = await fetch(`${API_BASE}/endpoints/${id}`, {
+    return request(`${API_BASE}/endpoints/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
-    return handleResponse(res);
   },
 
   async deleteEndpoint(id) {
-    const res = await fetch(`${API_BASE}/endpoints/${id}`, {
+    return request(`${API_BASE}/endpoints/${id}`, {
       method: 'DELETE'
     });
-    return handleResponse(res);
   },
 
   // Events
@@ -80,20 +111,17 @@ export const api = {
     if (params.eventType) query.set('eventType', params.eventType);
 
     const qs = query.toString() ? `?${query.toString()}` : '';
-    const res = await fetch(`${API_BASE}/events${qs}`);
-    return handleResponse(res);
+    return request(`${API_BASE}/events${qs}`, { method: 'GET' });
   },
 
   async getEvent(id) {
-    const res = await fetch(`${API_BASE}/events/${id}`);
-    return handleResponse(res);
+    return request(`${API_BASE}/events/${id}`, { method: 'GET' });
   },
 
   async replayEvent(id) {
-    const res = await fetch(`${API_BASE}/events/${id}/replay`, {
+    return request(`${API_BASE}/events/${id}/replay`, {
       method: 'POST'
     });
-    return handleResponse(res);
   },
 
   async ingestEvent(endpointId, payload, idempotencyKey = null) {
@@ -102,11 +130,10 @@ export const api = {
       headers['Idempotency-Key'] = idempotencyKey;
     }
 
-    const res = await fetch(`${API_BASE}/endpoints/${endpointId}/events`, {
+    return request(`${API_BASE}/endpoints/${endpointId}/events`, {
       method: 'POST',
       headers,
       body: JSON.stringify(payload)
     });
-    return handleResponse(res);
   }
 };

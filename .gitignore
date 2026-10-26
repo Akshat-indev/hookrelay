@@ -4,9 +4,9 @@ node_modules/
 *.log
 dist/
 .vite/
-prisma/*.db
-prisma/*.db-journal
-prisma/*.db-wal
-prisma/*.db-shm
-tests/test.db*
+*.db
+*.db-*
+*.db-journal
+*.db-wal
+*.db-shm
 .DS_Store

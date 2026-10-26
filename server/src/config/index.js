@@ -19,5 +19,6 @@ export const config = {
   security: {
     allowLocalDestinations: process.env.ALLOW_LOCAL_DESTINATIONS === 'true' || process.env.NODE_ENV === 'test',
     maxPayloadBytes: parseInt(process.env.MAX_PAYLOAD_BYTES || '1048576', 10), // 1MB
+    corsOrigin: process.env.CORS_ORIGIN || '*'
   }
 };

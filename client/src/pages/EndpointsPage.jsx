@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
@@ -9,7 +10,8 @@ import {
   Trash2,
   AlertTriangle,
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  ArrowUpRight
 } from 'lucide-react';
 import { api } from '../api/client';
 import { Modal } from '../components/Modal';
@@ -170,7 +172,12 @@ export function EndpointsPage() {
               {endpoints.map((ep) => (
                 <tr key={ep.id} className="hover:bg-slate-800/30 transition-colors">
                   <td className="py-3 px-4 font-medium text-slate-200">
-                    {ep.name}
+                    <Link
+                      to={`/endpoints/${ep.id}`}
+                      className="text-indigo-400 hover:text-indigo-300 font-semibold hover:underline inline-flex items-center gap-1"
+                    >
+                      <span>{ep.name}</span>
+                    </Link>
                   </td>
                   <td className="py-3 px-4 font-mono text-slate-300 max-w-xs truncate" title={ep.destinationUrl}>
                     {ep.destinationUrl}
@@ -211,7 +218,14 @@ export function EndpointsPage() {
                     {formatDate(ep.createdAt)}
                   </td>
                   <td className="py-3 px-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Link
+                        to={`/endpoints/${ep.id}`}
+                        className="p-1.5 rounded-md border border-card-border text-slate-400 hover:text-indigo-400 hover:border-indigo-800/50 hover:bg-indigo-950/20 transition-colors"
+                        title="View endpoint details and events"
+                      >
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </Link>
                       <button
                         onClick={() => toggleMutation.mutate({ id: ep.id, enabled: !ep.enabled })}
                         className={`p-1.5 rounded-md border transition-colors ${

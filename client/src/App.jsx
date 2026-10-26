@@ -5,6 +5,7 @@ import { ToastProvider } from './components/ToastContext';
 import { Layout } from './components/Layout';
 import { OverviewPage } from './pages/OverviewPage';
 import { EndpointsPage } from './pages/EndpointsPage';
+import { EndpointDetailPage } from './pages/EndpointDetailPage';
 import { EventsPage } from './pages/EventsPage';
 import { EventDetailPage } from './pages/EventDetailPage';
 import { DocsPage } from './pages/DocsPage';
@@ -27,6 +28,7 @@ export function App() {
             <Route path="/" element={<Layout />}>
               <Route index element={<OverviewPage />} />
               <Route path="endpoints" element={<EndpointsPage />} />
+              <Route path="endpoints/:id" element={<EndpointDetailPage />} />
               <Route path="events" element={<EventsPage />} />
               <Route path="events/:id" element={<EventDetailPage />} />
               <Route path="docs" element={<DocsPage />} />
