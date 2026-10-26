@@ -1,13 +1,15 @@
 // Centralized API Client for HookRelay
-const rawBase = import.meta.env.VITE_API_BASE_URL || '';
-export const API_BASE = rawBase ? `${rawBase.replace(/\/+$/, '')}/api` : '/api';
+const rawBase = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+export const API_BASE = rawBase
+  ? (rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`)
+  : '/api';
 
 /**
  * Returns the public root URL of the API for integration examples.
  */
 export function getApiRootUrl() {
   if (rawBase) {
-    return rawBase.replace(/\/+$/, '');
+    return rawBase.replace(/\/api$/, '');
   }
   if (typeof window !== 'undefined') {
     return window.location.origin;

@@ -1,12 +1,12 @@
 services:
-  # Web Service: Express API
+  # Web Service: Express API + Delivery Worker (Unified Process on Free Tier)
   - type: web
-    name: hookrelay-api
+    name: hookrelay-backend
     runtime: node
-    plan: starter
+    plan: free
     rootDir: server
     buildCommand: npm install && npx prisma db push --schema=prisma/schema.postgresql.prisma
-    startCommand: npm run start
+    startCommand: npm run start:all
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
@@ -22,27 +22,9 @@ services:
       - key: ALLOW_LOCAL_DESTINATIONS
         value: "false"
 
-  # Background Worker: Node.js Delivery Worker
-  - type: worker
-    name: hookrelay-worker
-    runtime: node
-    plan: starter
-    rootDir: server
-    buildCommand: npm install
-    startCommand: npm run worker
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: DATABASE_URL
-        fromDatabase:
-          name: hookrelay-db
-          property: connectionString
-      - key: ALLOW_LOCAL_DESTINATIONS
-        value: "false"
-
-# Managed PostgreSQL Database shared by API and Worker
+# Managed PostgreSQL Database (Free tier)
 databases:
   - name: hookrelay-db
-    plan: starter
+    plan: free
     databaseName: hookrelay
     user: hookrelay_user
