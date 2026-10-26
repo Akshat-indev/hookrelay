@@ -11,6 +11,11 @@ export function DocsPage() {
     "maxRetries": 5
   }'`;
 
+  const pwshCreateEndpoint = `Invoke-RestMethod -Uri "http://localhost:4000/api/endpoints" \`
+  -Method Post \`
+  -ContentType "application/json" \`
+  -Body '{"name": "Production Payment Receiver", "destinationUrl": "https://api.mycompany.com/webhooks/payments", "maxRetries": 5}'`;
+
   const curlSendEvent = `curl -X POST http://localhost:4000/api/endpoints/ep_YOUR_ENDPOINT_ID/events \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: pay_order_12345" \\
@@ -23,6 +28,12 @@ export function DocsPage() {
       "customer": "cust_8821"
     }
   }'`;
+
+  const pwshSendEvent = `Invoke-RestMethod -Uri "http://localhost:4000/api/endpoints/ep_YOUR_ENDPOINT_ID/events" \`
+  -Method Post \`
+  -Headers @{ "Idempotency-Key" = "pay_order_12345" } \`
+  -ContentType "application/json" \`
+  -Body '{"event_type": "payment.completed", "data": {"payment_id": "pay_123", "amount": 4999, "currency": "usd", "customer": "cust_8821"}}'`;
 
   const webhookEnvelope = `{
   "event_id": "evt_7d82b1c4e9",
@@ -89,7 +100,10 @@ def verify_webhook(raw_body_bytes, signature_header, signing_secret):
           Create an endpoint by specifying a name, a valid destination URL (http:// or https://), and max retry attempts.
           Upon creation, HookRelay generates a unique signing secret prefixed with <code className="text-indigo-300 bg-indigo-950/60 px-1 py-0.5 rounded font-mono">whsec_</code>.
         </p>
-        <CodeBlock code={curlCreateEndpoint} language="bash" title="Register Endpoint (curl)" />
+        <div className="grid grid-cols-1 gap-3">
+          <CodeBlock code={curlCreateEndpoint} language="bash" title="Register Endpoint (Bash / macOS / Linux / Git Bash)" />
+          <CodeBlock code={pwshCreateEndpoint} language="powershell" title="Register Endpoint (Windows PowerShell)" />
+        </div>
       </section>
 
       {/* 2. Submitting an Event */}
@@ -102,7 +116,10 @@ def verify_webhook(raw_body_bytes, signature_header, signing_secret):
           Send an HTTP POST request to <code className="text-indigo-300 bg-indigo-950/60 px-1 py-0.5 rounded font-mono">/api/endpoints/:id/events</code>.
           HookRelay persists the event immediately and responds with <code className="text-emerald-400 font-mono">HTTP 202 Accepted</code>, scheduling it for background delivery.
         </p>
-        <CodeBlock code={curlSendEvent} language="bash" title="Submit Event (curl)" />
+        <div className="grid grid-cols-1 gap-3">
+          <CodeBlock code={curlSendEvent} language="bash" title="Submit Event (Bash / macOS / Linux / Git Bash)" />
+          <CodeBlock code={pwshSendEvent} language="powershell" title="Submit Event (Windows PowerShell)" />
+        </div>
       </section>
 
       {/* 3. Outbound Envelope Specification */}
