@@ -1,0 +1,72 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Endpoint {
+  id             String    @id
+  name           String
+  destinationUrl String
+  signingSecret  String
+  maxRetries     Int       @default(5)
+  enabled        Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  events         Event[]
+
+  @@index([enabled])
+  @@index([createdAt])
+}
+
+model Event {
+  id               String            @id
+  endpointId       String
+  eventType        String
+  payload          String
+  status           String            @default("QUEUED") // QUEUED, DELIVERING, RETRYING, DELIVERED, FAILED
+  attempts         Int               @default(0)
+  maxRetries       Int               @default(5)
+  nextAttemptAt    DateTime          @default(now())
+  lockedAt         DateTime?
+  lockedBy         String?
+  idempotencyKey   String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  endpoint         Endpoint          @relation(fields: [endpointId], references: [id], onDelete: Restrict)
+  deliveryAttempts DeliveryAttempt[]
+
+  @@unique([endpointId, idempotencyKey])
+  @@index([status, nextAttemptAt])
+  @@index([endpointId])
+  @@index([createdAt])
+}
+
+model DeliveryAttempt {
+  id            String   @id
+  eventId       String
+  attemptNumber Int
+  statusCode    Int?
+  responseBody  String?
+  errorMessage  String?
+  latencyMs     Int?
+  startedAt     DateTime
+  completedAt   DateTime
+  createdAt     DateTime @default(now())
+  event         Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, attemptNumber])
+  @@index([createdAt])
+}
+
+model WorkerHeartbeat {
+  id            String   @id @default("primary")
+  workerId      String
+  lastHeartbeat DateTime @default(now())
+  status        String   @default("RUNNING")
+
+  @@index([lastHeartbeat])
+}
