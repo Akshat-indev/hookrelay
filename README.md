@@ -468,63 +468,52 @@ HookRelay is architected for clean cloud deployment with decoupled processes sha
 
 ---
 
-### Step-by-Step Deployment: Cloudflare Pages + Railway
+### Deployment Options (Zero Credit Card Required)
 
-#### 1. Deploy the Backend & Database to Railway
+> **Full Step-by-Step Guide:** See [`DEPLOYMENT.md`](./DEPLOYMENT.md) for full screenshots and detailed instructions.
 
-1. Sign up or log in at **[railway.app](https://railway.app)**.
-2. Click **New Project** -> **Provision PostgreSQL**.
-3. In the same project, click **+ New** -> **GitHub Repo** -> select your `HookRelay` repository.
-4. Configure **Service 1: API Server** (`hookrelay-api`):
-   - **Settings** -> **Root Directory**: `server`
+#### Option 1: Render (100% Free Web Service + Free Postgres) — Recommended
+
+Render allows instant GitHub sign-up without requiring a credit card:
+
+1. **Free PostgreSQL Database**:
+   - Go to [dashboard.render.com](https://dashboard.render.com/) -> **New +** -> **PostgreSQL**.
+   - Select the **Free** instance type.
+   - Copy the **Internal Database URL**.
+
+2. **Free Unified Backend Service**:
+   - Click **New +** -> **Web Service** -> select your repo `Akshat-indev/hookrelay`.
+   - **Root Directory**: `server`
    - **Build Command**: `npm install && npx prisma db push --schema=prisma/schema.postgresql.prisma`
-   - **Start Command**: `npm run start`
-   - **Variables**:
+   - **Start Command**: `npm run start:all` *(runs both Express API + delivery worker concurrently)*
+   - **Instance Type**: **Free**
+   - **Environment Variables**:
      - `NODE_ENV`: `production`
-     - `PORT`: `4000` (or Railway default)
-     - `DATABASE_URL`: `${{Postgres.DATABASE_URL}}` *(Click "Add Reference" and select Postgres -> DATABASE_URL)*
-     - `CORS_ORIGIN`: `*` (or your Cloudflare Pages URL)
+     - `DATABASE_URL`: *(Your Render Postgres URL)*
+     - `CORS_ORIGIN`: `*`
      - `ALLOW_LOCAL_DESTINATIONS`: `false`
-   - **Networking**: Click **Generate Domain** (e.g. `hookrelay-api-production.up.railway.app`).
 
-5. In the same project, click **+ New** -> **GitHub Repo** -> select `HookRelay` again to create **Service 2: Delivery Worker** (`hookrelay-worker`):
-   - **Settings** -> **Root Directory**: `server`
-   - **Build Command**: `npm install`
-   - **Start Command**: `npm run worker`
-   - **Variables**:
-     - `NODE_ENV`: `production`
-     - `DATABASE_URL`: `${{Postgres.DATABASE_URL}}`
-     - `ALLOW_LOCAL_DESTINATIONS`: `false`
-   - *(Note: No public networking domain is needed for the worker).*
+#### Option 2: Koyeb + Neon.tech (Zero Card Alternative)
 
-Your API and delivery worker are now running live with automated retries and persistent queue state!
+- **Neon.tech**: Free serverless PostgreSQL in 10 seconds (login with GitHub).
+- **Koyeb.com**: Free Eco Web Service (login with GitHub). Set root to `server`, build command to `npm install && npx prisma db push --schema=prisma/schema.postgresql.prisma`, start command to `npm run start:all`.
 
 ---
 
-#### 2. Deploy the Frontend to Cloudflare Pages
+### Deploy Frontend to Cloudflare Pages
 
-1. Log in to the **[Cloudflare Dashboard](https://dash.cloudflare.com/)** -> **Workers & Pages** -> **Create application** -> **Pages** -> **Connect to Git**.
+1. Log in to **[Cloudflare Dashboard](https://dash.cloudflare.com/)** -> **Workers & Pages** -> **Create application** -> **Pages** -> **Connect to Git**.
 2. Select your `HookRelay` repository.
-3. Configure the build settings:
-   - **Project Name**: `hookrelay`
+3. Configure build settings:
    - **Framework Preset**: `Vite`
    - **Root Directory**: `client`
    - **Build Command**: `npm run build`
    - **Build Output Directory**: `dist`
-4. In **Environment Variables**, add:
-   - **Variable name**: `VITE_API_BASE_URL`
-   - **Value**: `https://hookrelay-api-production.up.railway.app` *(your Railway API domain from Step 1)*
+4. Add Environment Variable:
+   - `VITE_API_BASE_URL` = `https://<your-backend>.onrender.com` (or Koyeb URL)
 5. Click **Save and Deploy**.
 
-> **Note on Client-Side Routing**: HookRelay includes `client/public/_redirects` (`/* /index.html 200`), ensuring all deep links (`/endpoints/:id`, `/events/:id`) work seamlessly without 404 errors on Cloudflare Pages.
-
----
-
-### Alternative: Deploy on Render + Vercel
-
-If you prefer Render and Vercel:
-- **Render**: Connect the repository using the included `render.yaml` blueprint.
-- **Vercel**: Import the repository, select `client` as root directory, and set `VITE_API_BASE_URL`.
+> **Note on Client-Side Routing**: The repo includes `client/public/_redirects` (`/* /index.html 200`), ensuring all deep links (`/endpoints/:id`, `/events/:id`) work seamlessly without 404 errors on Cloudflare Pages.
 
 ---
 
