@@ -83,7 +83,7 @@ async function runWorker() {
 }
 
 // Graceful shutdown
-async function shutdown(signal) {
+export async function shutdownWorker(signal = 'SIGTERM') {
   if (!isRunning) return;
   logger.info(`Received ${signal}. Shutting down delivery worker gracefully...`);
   isRunning = false;
@@ -109,15 +109,26 @@ async function shutdown(signal) {
   } catch (err) {
     logger.error(`Error closing database: ${err.message}`);
   }
-
-  process.exit(0);
 }
 
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
+export { runWorker as startWorker };
 
-// Start the worker process
-runWorker().catch((err) => {
-  logger.error(`Fatal error in worker: ${err.message}`);
-  process.exit(1);
-});
+// If executed directly as main script
+import { fileURLToPath } from 'node:url';
+const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
+
+if (isMain) {
+  process.on('SIGTERM', async () => {
+    await shutdownWorker('SIGTERM');
+    process.exit(0);
+  });
+  process.on('SIGINT', async () => {
+    await shutdownWorker('SIGINT');
+    process.exit(0);
+  });
+
+  runWorker().catch((err) => {
+    logger.error(`Fatal error in worker: ${err.message}`);
+    process.exit(1);
+  });
+}

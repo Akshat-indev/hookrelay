@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "node --watch --env-file=.env src/server.js",
     "start": "node src/server.js",
+    "start:all": "node src/index.js",
     "worker": "node src/worker.js",
     "worker:dev": "node --watch --env-file=.env src/worker.js",
     "db:generate": "prisma generate",
