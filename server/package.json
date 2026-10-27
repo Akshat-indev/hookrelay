@@ -4,7 +4,8 @@
   "type": "module",
   "description": "Backend API and delivery worker for HookRelay",
   "main": "src/server.js",
-  "scripts": {
+ "scripts": {
+    "build": "prisma generate --schema=prisma/schema.postgresql.prisma",
     "dev": "node --watch --env-file=.env src/server.js",
     "start": "node src/server.js",
     "start:all": "node src/index.js",
